@@ -2,13 +2,11 @@ import { useAuth } from '@clerk/expo';
 import { Link, Redirect } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
-  FlatList,
+  Animated,
   Pressable,
   StyleSheet,
   Text,
   View,
-  ViewToken,
-  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/src/shared/theme';
@@ -293,26 +291,28 @@ const PAGES: React.ComponentType[] = [
 export default function LandingScreen() {
   const { isSignedIn, isLoaded } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
-  const listRef = useRef<FlatList>(null);
-  const { width: SW } = useWindowDimensions();
-
-  const onViewableItemsChanged = useRef(
-    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
-      if (viewableItems[0]) setCurrentPage(viewableItems[0].index ?? 0);
-    },
-  ).current;
-
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   if (isLoaded && isSignedIn) return <Redirect href="/(tabs)" />;
 
   const goTo = (index: number) => {
-    listRef.current?.scrollToIndex({ index, animated: true });
-    setCurrentPage(index);
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setCurrentPage(index);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
   };
 
   const isFirst = currentPage === 0;
   const isLast  = currentPage === PAGES.length - 1;
+  const ActivePage = PAGES[currentPage];
 
   return (
     <SafeAreaView style={s.safe}>
@@ -326,23 +326,10 @@ export default function LandingScreen() {
         )}
       </View>
 
-      {/* Paged content */}
-      <FlatList
-        ref={listRef}
-        data={PAGES}
-        keyExtractor={(_, i) => String(i)}
-        renderItem={({ item: Page }) => (
-          <View style={[s.pageWrap, { width: SW }]}>
-            <Page />
-          </View>
-        )}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        style={s.list}
-      />
+      {/* Active page */}
+      <Animated.View style={[s.pageWrap, { opacity: fadeAnim }]}>
+        <ActivePage />
+      </Animated.View>
 
       {/* Bottom nav */}
       <View style={s.bottomNav}>
@@ -396,9 +383,6 @@ const s = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.text.muted,
     fontWeight: FontWeight.medium,
-  },
-  list: {
-    flex: 1,
   },
   pageWrap: {
     flex: 1,
