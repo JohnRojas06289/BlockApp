@@ -1,5 +1,7 @@
+import { useAuth } from '@clerk/expo';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
+
 import { Colors } from '@/src/shared/theme';
 
 function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']; color: string }) {
@@ -7,6 +9,11 @@ function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']
 }
 
 export default function TabLayout() {
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Redirect href="/sign-in" />;
+
   return (
     <Tabs
       screenOptions={{

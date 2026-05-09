@@ -38,7 +38,8 @@ export default function SignUpScreen() {
         await ssoSetActive?.({ session: createdSessionId });
         router.replace('/(tabs)');
       }
-    } catch {
+    } catch (err) {
+      console.error('[SSO Error]', err);
       setError('Sign up failed. Please try again.');
     }
   }
@@ -224,6 +225,29 @@ export default function SignUpScreen() {
             </Text>
           </View>
 
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or continue with</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.socialRow}>
+            <Pressable
+              style={({ pressed }) => [styles.socialBtn, pressed && styles.socialBtnPressed]}
+              onPress={() => handleSSO('oauth_google')}
+            >
+              <Text style={styles.socialIcon}>G</Text>
+              <Text style={styles.socialLabel}>Google</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.socialBtn, pressed && styles.socialBtnPressed]}
+              onPress={() => handleSSO('oauth_github')}
+            >
+              <Text style={styles.socialIcon}>⌥</Text>
+              <Text style={styles.socialLabel}>GitHub</Text>
+            </Pressable>
+          </View>
+
           <View style={styles.footer}>
             <Text style={styles.footerText}>Already have an account? </Text>
             <Link href="/sign-in" asChild>
@@ -289,6 +313,19 @@ const styles = StyleSheet.create({
   buttonPressed: { opacity: 0.85 },
   buttonText: { color: '#fff', fontWeight: FontWeight.bold, fontSize: FontSize.md },
   legal: { fontSize: FontSize.xs, color: Colors.text.muted, textAlign: 'center', lineHeight: 16 },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.md },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border.default },
+  dividerText: { fontSize: FontSize.xs, color: Colors.text.muted, fontWeight: FontWeight.medium },
+  socialRow: { flexDirection: 'row', gap: Spacing.sm },
+  socialBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: Spacing.sm, paddingVertical: 13,
+    backgroundColor: Colors.bg.elevated,
+    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border.default,
+  },
+  socialBtnPressed: { opacity: 0.7 },
+  socialIcon: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.text.primary },
+  socialLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.text.primary },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.lg },
   footerText: { fontSize: FontSize.sm, color: Colors.text.muted },
   link: { fontSize: FontSize.sm, color: Colors.brand.light, fontWeight: FontWeight.semibold },

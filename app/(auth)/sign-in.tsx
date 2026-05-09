@@ -33,7 +33,8 @@ export default function SignInScreen() {
         await ssoSetActive?.({ session: createdSessionId });
         router.replace('/(tabs)');
       }
-    } catch {
+    } catch (err) {
+      console.error('[SSO Error]', err);
       setError('Sign in failed. Please try again.');
     }
   }

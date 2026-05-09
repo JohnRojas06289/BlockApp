@@ -1,7 +1,7 @@
-import { ClerkProvider, useAuth } from '@clerk/expo';
+import { ClerkProvider } from '@clerk/expo';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useFonts } from 'expo-font';
-import { Redirect, Stack } from 'expo-router';
+import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import { Platform, Text, View } from 'react-native';
@@ -13,7 +13,7 @@ import { Colors } from '@/src/shared/theme';
 
 export { ErrorBoundary } from 'expo-router';
 
-export const unstable_settings = { initialRouteName: '(tabs)' };
+export const unstable_settings = { initialRouteName: 'index' };
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,34 +36,25 @@ function NativeMigrationGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Guard que redirige a sign-in si no hay sesión activa
-function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isSignedIn, isLoaded } = useAuth();
-  if (!isLoaded) return null;
-  if (!isSignedIn) return <Redirect href="/sign-in" />;
-  return <>{children}</>;
-}
-
 function AppShell() {
   return (
-    <AuthGuard>
-      <QueryProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: Colors.bg.primary },
-          }}
-        >
-          <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </QueryProvider>
-    </AuthGuard>
+    <QueryProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: Colors.bg.primary },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="+not-found" />
+      </Stack>
+    </QueryProvider>
   );
 }
 
-export default function RootLayout() {
+function FontGuard({ children }: { children: React.ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
@@ -79,6 +70,10 @@ export default function RootLayout() {
 
   if (!fontsLoaded) return null;
 
+  return <>{children}</>;
+}
+
+export default function RootLayout() {
   const inner =
     Platform.OS === 'web' ? (
       <AppShell />
@@ -90,7 +85,7 @@ export default function RootLayout() {
 
   return (
     <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
-      {inner}
+      <FontGuard>{inner}</FontGuard>
     </ClerkProvider>
   );
 }

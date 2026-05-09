@@ -3,7 +3,9 @@ import { Redirect, Stack } from 'expo-router';
 import { Colors } from '@/src/shared/theme';
 
 export default function AuthLayout() {
-  const { isSignedIn } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
+
+  if (!isLoaded) return null;
 
   // Si ya está autenticado, redirige a la app principal
   if (isSignedIn) return <Redirect href="/(tabs)" />;
