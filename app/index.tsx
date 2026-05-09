@@ -2,18 +2,16 @@ import { useAuth } from '@clerk/expo';
 import { Link, Redirect } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
-  Dimensions,
   FlatList,
   Pressable,
   StyleSheet,
   Text,
   View,
   ViewToken,
+  useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/src/shared/theme';
-
-const { width: SW } = Dimensions.get('window');
 
 // ─── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -296,6 +294,7 @@ export default function LandingScreen() {
   const { isSignedIn, isLoaded } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
   const listRef = useRef<FlatList>(null);
+  const { width: SW } = useWindowDimensions();
 
   const onViewableItemsChanged = useRef(
     ({ viewableItems }: { viewableItems: ViewToken[] }) => {
@@ -333,7 +332,7 @@ export default function LandingScreen() {
         data={PAGES}
         keyExtractor={(_, i) => String(i)}
         renderItem={({ item: Page }) => (
-          <View style={s.pageWrap}>
+          <View style={[s.pageWrap, { width: SW }]}>
             <Page />
           </View>
         )}
@@ -402,7 +401,6 @@ const s = StyleSheet.create({
     flex: 1,
   },
   pageWrap: {
-    width: SW,
     flex: 1,
   },
   bottomNav: {
