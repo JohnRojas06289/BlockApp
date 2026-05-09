@@ -1,59 +1,96 @@
+import { ClerkProvider, useAuth } from '@clerk/expo';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform, Text, View } from 'react-native';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/components/useColorScheme';
+import { tokenCache } from '@/src/shared/auth/tokenCache';
+import { QueryProvider } from '@/src/shared/providers/QueryProvider';
+import { Colors } from '@/src/shared/theme';
 
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from 'expo-router';
 
-export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
-  initialRouteName: '(tabs)',
-};
+export const unstable_settings = { initialRouteName: '(tabs)' };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
+const CLERK_PUBLISHABLE_KEY = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? '';
+
+function NativeMigrationGuard({ children }: { children: React.ReactNode }) {
+  const { useMigrations } = require('drizzle-orm/expo-sqlite/migrator');
+  const { db } = require('@/src/shared/db/client');
+  const migrations = require('@/src/shared/db/migrations/migrations').default;
+  const { success, error } = useMigrations(db, migrations);
+
+  if (error) {
+    return (
+      <View style={{ flex: 1, backgroundColor: Colors.bg.primary, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ color: Colors.danger }}>Database error: {error.message}</Text>
+      </View>
+    );
+  }
+  if (!success) return null;
+  return <>{children}</>;
+}
+
+// Guard que redirige a sign-in si no hay sesión activa
+function AuthGuard({ children }: { children: React.ReactNode }) {
+  const { isSignedIn, isLoaded } = useAuth();
+  if (!isLoaded) return null;
+  if (!isSignedIn) return <Redirect href="/sign-in" />;
+  return <>{children}</>;
+}
+
+function AppShell() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: Colors.bg.primary },
+          }}
+        >
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}
+
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    if (fontError) throw fontError;
+  }, [fontError]);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    if (fontsLoaded) SplashScreen.hideAsync();
+  }, [fontsLoaded]);
 
-  if (!loaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
-  return <RootLayoutNav />;
-}
-
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  const inner =
+    Platform.OS === 'web' ? (
+      <AppShell />
+    ) : (
+      <NativeMigrationGuard>
+        <AppShell />
+      </NativeMigrationGuard>
+    );
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
-      </Stack>
-    </ThemeProvider>
+    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY} tokenCache={tokenCache}>
+      {inner}
+    </ClerkProvider>
   );
 }

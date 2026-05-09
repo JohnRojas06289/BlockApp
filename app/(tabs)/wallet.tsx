@@ -1,11 +1,11 @@
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MarketScreen } from '@/src/modules/market/presentation/MarketScreen';
+import { WalletScreen } from '@/src/modules/wallet/presentation/WalletScreen';
 
-export default function MarketTab() {
+export default function WalletTab() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <MarketScreen />
+      <WalletScreen />
     </SafeAreaView>
   );
 }
