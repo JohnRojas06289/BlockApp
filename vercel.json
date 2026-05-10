@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npx expo export --platform web",
+  "buildCommand": "npx expo export --platform web && rm -f dist/sign-in.html dist/sign-up.html && rm -rf dist/sign-in dist/sign-up",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
