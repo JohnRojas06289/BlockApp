@@ -54,6 +54,27 @@ function AppShell() {
   );
 }
 
+function ConfigErrorScreen() {
+  return (
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: Colors.bg.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 24,
+      }}
+    >
+      <Text style={{ color: Colors.text.primary, fontSize: 18, fontWeight: '700', textAlign: 'center' }}>
+        Missing Clerk configuration
+      </Text>
+      <Text style={{ color: Colors.text.muted, marginTop: 8, textAlign: 'center' }}>
+        Set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY before starting or deploying the app.
+      </Text>
+    </View>
+  );
+}
+
 function FontGuard({ children }: { children: React.ReactNode }) {
   const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -74,6 +95,10 @@ function FontGuard({ children }: { children: React.ReactNode }) {
 }
 
 export default function RootLayout() {
+  if (!CLERK_PUBLISHABLE_KEY) {
+    return <ConfigErrorScreen />;
+  }
+
   const inner =
     Platform.OS === 'web' ? (
       <AppShell />

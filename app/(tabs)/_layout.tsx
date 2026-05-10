@@ -1,6 +1,7 @@
 import { useAuth } from '@clerk/expo';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Redirect, Tabs } from 'expo-router';
+import { ActivityIndicator, Text, View } from 'react-native';
 
 import { Colors } from '@/src/shared/theme';
 
@@ -11,7 +12,23 @@ function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']
 export default function TabLayout() {
   const { isSignedIn, isLoaded } = useAuth();
 
-  if (!isLoaded) return null;
+  if (!isLoaded) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: Colors.bg.primary,
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: 12,
+        }}
+      >
+        <ActivityIndicator size="large" color={Colors.brand.primary} />
+        <Text style={{ color: Colors.text.muted }}>Loading your workspace…</Text>
+      </View>
+    );
+  }
+
   if (!isSignedIn) return <Redirect href="/sign-in" />;
 
   return (
