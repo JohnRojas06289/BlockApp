@@ -1,5 +1,3 @@
-import { useSSO } from '@clerk/expo';
-import { useSignUp } from '@clerk/expo/legacy';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -14,123 +12,44 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useAuth } from '@/src/shared/auth';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/src/shared/theme';
 
-type Step = 'form' | 'verify';
+function DemoNotice() {
+  return (
+    <View style={styles.noticeBox}>
+      <Text style={styles.noticeTitle}>Prototype account system</Text>
+      <Text style={styles.noticeText}>
+        This sign-up only creates a local frontend account for demo purposes. It is not backed by a secure server.
+      </Text>
+      <Text style={styles.noticeText}>Do not use real passwords or sensitive personal data.</Text>
+    </View>
+  );
+}
 
 export default function SignUpScreen() {
-  const { signUp, setActive, isLoaded } = useSignUp();
-  const { startSSOFlow } = useSSO();
+  const { signUp } = useAuth();
   const router = useRouter();
 
-  const [step, setStep] = useState<Step>('form');
   const [firstName, setFirstName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSSO(strategy: 'oauth_google' | 'oauth_github') {
-    try {
-      const { createdSessionId, setActive: ssoSetActive } = await startSSOFlow({ strategy });
-      if (createdSessionId) {
-        await ssoSetActive?.({ session: createdSessionId });
-        router.replace('/(tabs)');
-      }
-    } catch (err) {
-      console.error('[SSO Error]', err);
-      setError('Sign up failed. Please try again.');
-    }
-  }
-
   async function handleSignUp() {
-    if (!isLoaded) return;
     setError(null);
     setLoading(true);
 
     try {
-      await signUp.create({ firstName, emailAddress: email, password });
-      await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
-      setStep('verify');
+      await signUp({ firstName, email, password });
+      router.replace('/(tabs)');
     } catch (err: unknown) {
       setError(sanitizeAuthError(err instanceof Error ? err.message : ''));
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleVerify() {
-    if (!isLoaded) return;
-    setError(null);
-    setLoading(true);
-
-    try {
-      const result = await signUp.attemptEmailAddressVerification({ code });
-
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)');
-      }
-    } catch (err: unknown) {
-      setError('Invalid or expired code. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (step === 'verify') {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.brand}>
-            <View style={styles.logoMark}>
-              <Text style={styles.logoText}>B</Text>
-            </View>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.title}>Check your email</Text>
-            <Text style={styles.subtitle}>
-              We sent a 6-digit code to {email}
-            </Text>
-
-            <View style={styles.field}>
-              <Text style={styles.label}>Verification Code</Text>
-              <TextInput
-                style={[styles.input, styles.codeInput]}
-                value={code}
-                onChangeText={setCode}
-                placeholder="000000"
-                placeholderTextColor={Colors.text.muted}
-                keyboardType="number-pad"
-                maxLength={6}
-                textContentType="oneTimeCode"
-                autoComplete="one-time-code"
-              />
-            </View>
-
-            {error && (
-              <View style={styles.errorBox}>
-                <Text style={styles.errorText}>{error}</Text>
-              </View>
-            )}
-
-            <Pressable
-              style={({ pressed }) => [
-                styles.button,
-                (loading || code.length < 6) && styles.buttonDisabled,
-                pressed && styles.buttonPressed,
-              ]}
-              onPress={handleVerify}
-              disabled={loading || code.length < 6}
-            >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify Email</Text>}
-            </Pressable>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
   }
 
   return (
@@ -149,12 +68,14 @@ export default function SignUpScreen() {
               <Text style={styles.logoText}>B</Text>
             </View>
             <Text style={styles.appName}>BlockApp</Text>
-            <Text style={styles.tagline}>Start tracking your on-chain portfolio</Text>
+            <Text style={styles.tagline}>Create a local demo account</Text>
           </View>
+
+          <DemoNotice />
 
           <View style={styles.card}>
             <Text style={styles.title}>Create account</Text>
-            <Text style={styles.subtitle}>It's free and takes 30 seconds</Text>
+            <Text style={styles.subtitle}>Stored only on this device/browser</Text>
 
             <View style={styles.field}>
               <Text style={styles.label}>First Name</Text>
@@ -221,35 +142,12 @@ export default function SignUpScreen() {
             </Pressable>
 
             <Text style={styles.legal}>
-              By signing up you agree to our Terms of Service and Privacy Policy.
+              Demo only: this account exists only on your current browser/device and can be cleared at any time.
             </Text>
           </View>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.socialRow}>
-            <Pressable
-              style={({ pressed }) => [styles.socialBtn, pressed && styles.socialBtnPressed]}
-              onPress={() => handleSSO('oauth_google')}
-            >
-              <Text style={styles.socialIcon}>G</Text>
-              <Text style={styles.socialLabel}>Google</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.socialBtn, pressed && styles.socialBtnPressed]}
-              onPress={() => handleSSO('oauth_github')}
-            >
-              <Text style={styles.socialIcon}>⌥</Text>
-              <Text style={styles.socialLabel}>GitHub</Text>
-            </Pressable>
-          </View>
-
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
+            <Text style={styles.footerText}>Already have a demo account? </Text>
             <Link href="/sign-in" asChild>
               <Pressable>
                 <Text style={styles.link}>Sign In</Text>
@@ -265,6 +163,7 @@ export default function SignUpScreen() {
 function sanitizeAuthError(message: string): string {
   if (message.toLowerCase().includes('email')) return 'This email is already registered.';
   if (message.toLowerCase().includes('password')) return 'Password must be at least 8 characters.';
+  if (message.toLowerCase().includes('first name')) return 'First name is required.';
   if (message.toLowerCase().includes('network')) return 'Connection error. Try again.';
   return 'Sign up failed. Please try again.';
 }
@@ -273,7 +172,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg.primary },
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: Spacing.md },
-  brand: { alignItems: 'center', marginBottom: Spacing.xl },
+  brand: { alignItems: 'center', marginBottom: Spacing.lg },
   logoMark: {
     width: 64, height: 64, borderRadius: Radius.lg,
     backgroundColor: Colors.brand.primary,
@@ -286,6 +185,17 @@ const styles = StyleSheet.create({
   logoText: { fontSize: 28, fontWeight: FontWeight.black, color: '#fff' },
   appName: { fontSize: FontSize.xl, fontWeight: FontWeight.black, color: Colors.text.primary },
   tagline: { fontSize: FontSize.sm, color: Colors.text.muted, marginTop: 4, textAlign: 'center' },
+  noticeBox: {
+    backgroundColor: Colors.warningDim,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.warning + '44',
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  noticeTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.warning },
+  noticeText: { fontSize: FontSize.xs, lineHeight: 18, color: Colors.text.secondary },
   card: {
     backgroundColor: Colors.bg.card, borderRadius: Radius.xl,
     padding: Spacing.lg, borderWidth: 1, borderColor: Colors.border.default, gap: Spacing.md,
@@ -299,7 +209,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md, paddingHorizontal: Spacing.md, paddingVertical: 14,
     fontSize: FontSize.md, color: Colors.text.primary,
   },
-  codeInput: { textAlign: 'center', fontSize: FontSize.xxl, letterSpacing: 8, fontWeight: FontWeight.bold },
   errorBox: {
     backgroundColor: Colors.dangerDim, borderRadius: Radius.sm,
     padding: Spacing.sm, borderWidth: 1, borderColor: Colors.danger + '33',
@@ -313,19 +222,6 @@ const styles = StyleSheet.create({
   buttonPressed: { opacity: 0.85 },
   buttonText: { color: '#fff', fontWeight: FontWeight.bold, fontSize: FontSize.md },
   legal: { fontSize: FontSize.xs, color: Colors.text.muted, textAlign: 'center', lineHeight: 16 },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.md },
-  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border.default },
-  dividerText: { fontSize: FontSize.xs, color: Colors.text.muted, fontWeight: FontWeight.medium },
-  socialRow: { flexDirection: 'row', gap: Spacing.sm },
-  socialBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, paddingVertical: 13,
-    backgroundColor: Colors.bg.elevated,
-    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border.default,
-  },
-  socialBtnPressed: { opacity: 0.7 },
-  socialIcon: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  socialLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.text.primary },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.lg },
   footerText: { fontSize: FontSize.sm, color: Colors.text.muted },
   link: { fontSize: FontSize.sm, color: Colors.brand.light, fontWeight: FontWeight.semibold },

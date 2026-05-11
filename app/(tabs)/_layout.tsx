@@ -1,8 +1,8 @@
-import { useAuth } from '@clerk/expo';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, Text, View } from 'react-native';
 
+import { useAuth } from '@/src/shared/auth';
 import { Colors } from '@/src/shared/theme';
 
 function TabIcon(props: { name: React.ComponentProps<typeof FontAwesome>['name']; color: string }) {

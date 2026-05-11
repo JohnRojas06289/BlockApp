@@ -1,5 +1,3 @@
-import { useSSO } from '@clerk/expo';
-import { useSignIn } from '@clerk/expo/legacy';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
@@ -14,11 +12,24 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { useAuth } from '@/src/shared/auth';
 import { Colors, FontSize, FontWeight, Radius, Spacing } from '@/src/shared/theme';
 
+function DemoNotice() {
+  return (
+    <View style={styles.noticeBox}>
+      <Text style={styles.noticeTitle}>Demo mode only</Text>
+      <Text style={styles.noticeText}>
+        This login is frontend-only for testing. Credentials are stored locally on this device/browser and are not secure.
+      </Text>
+      <Text style={styles.noticeText}>Do not use real passwords or sensitive personal data.</Text>
+    </View>
+  );
+}
+
 export default function SignInScreen() {
-  const { signIn, setActive, isLoaded } = useSignIn();
-  const { startSSOFlow } = useSSO();
+  const { signIn } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -26,35 +37,15 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSSO(strategy: 'oauth_google' | 'oauth_github') {
-    try {
-      const { createdSessionId, setActive: ssoSetActive } = await startSSOFlow({ strategy });
-      if (createdSessionId) {
-        await ssoSetActive?.({ session: createdSessionId });
-        router.replace('/(tabs)');
-      }
-    } catch (err) {
-      console.error('[SSO Error]', err);
-      setError('Sign in failed. Please try again.');
-    }
-  }
-
   async function handleSignIn() {
-    if (!isLoaded) return;
     setError(null);
     setLoading(true);
 
     try {
-      const result = await signIn.create({ identifier: email, password });
-
-      if (result.status === 'complete') {
-        await setActive({ session: result.createdSessionId });
-        router.replace('/(tabs)');
-      }
+      await signIn({ email, password });
+      router.replace('/(tabs)');
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : 'Authentication failed';
-      // No exponemos detalles técnicos internos al usuario
+      const message = err instanceof Error ? err.message : 'Authentication failed';
       setError(sanitizeAuthError(message));
     } finally {
       setLoading(false);
@@ -72,19 +63,19 @@ export default function SignInScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo / Brand */}
           <View style={styles.brand}>
             <View style={styles.logoMark}>
               <Text style={styles.logoText}>B</Text>
             </View>
             <Text style={styles.appName}>BlockApp</Text>
-            <Text style={styles.tagline}>Your on-chain portfolio, always with you</Text>
+            <Text style={styles.tagline}>Prototype access for UI testing</Text>
           </View>
 
-          {/* Form */}
+          <DemoNotice />
+
           <View style={styles.card}>
             <Text style={styles.title}>Welcome back</Text>
-            <Text style={styles.subtitle}>Sign in to your account</Text>
+            <Text style={styles.subtitle}>Sign in to your local demo account</Text>
 
             <View style={styles.field}>
               <Text style={styles.label}>Email</Text>
@@ -141,31 +132,8 @@ export default function SignInScreen() {
             </Pressable>
           </View>
 
-          <View style={styles.dividerRow}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>or continue with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <View style={styles.socialRow}>
-            <Pressable
-              style={({ pressed }) => [styles.socialBtn, pressed && styles.socialBtnPressed]}
-              onPress={() => handleSSO('oauth_google')}
-            >
-              <Text style={styles.socialIcon}>G</Text>
-              <Text style={styles.socialLabel}>Google</Text>
-            </Pressable>
-            <Pressable
-              style={({ pressed }) => [styles.socialBtn, pressed && styles.socialBtnPressed]}
-              onPress={() => handleSSO('oauth_github')}
-            >
-              <Text style={styles.socialIcon}>⌥</Text>
-              <Text style={styles.socialLabel}>GitHub</Text>
-            </Pressable>
-          </View>
-
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Text style={styles.footerText}>Don't have a demo account? </Text>
             <Link href="/sign-up" asChild>
               <Pressable>
                 <Text style={styles.link}>Create one</Text>
@@ -178,10 +146,9 @@ export default function SignInScreen() {
   );
 }
 
-// Sanitiza mensajes de error de Clerk para no exponer detalles técnicos internos
 function sanitizeAuthError(message: string): string {
   if (message.toLowerCase().includes('password')) return 'Incorrect email or password.';
-  if (message.toLowerCase().includes('identifier')) return 'Account not found.';
+  if (message.toLowerCase().includes('email')) return 'Incorrect email or password.';
   if (message.toLowerCase().includes('network')) return 'Connection error. Try again.';
   return 'Sign in failed. Please try again.';
 }
@@ -190,7 +157,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.bg.primary },
   flex: { flex: 1 },
   scroll: { flexGrow: 1, justifyContent: 'center', padding: Spacing.md },
-  brand: { alignItems: 'center', marginBottom: Spacing.xl },
+  brand: { alignItems: 'center', marginBottom: Spacing.lg },
   logoMark: {
     width: 64, height: 64, borderRadius: Radius.lg,
     backgroundColor: Colors.brand.primary,
@@ -204,6 +171,17 @@ const styles = StyleSheet.create({
   logoText: { fontSize: 28, fontWeight: FontWeight.black, color: '#fff' },
   appName: { fontSize: FontSize.xl, fontWeight: FontWeight.black, color: Colors.text.primary },
   tagline: { fontSize: FontSize.sm, color: Colors.text.muted, marginTop: 4, textAlign: 'center' },
+  noticeBox: {
+    backgroundColor: Colors.warningDim,
+    borderRadius: Radius.lg,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.warning + '44',
+    gap: Spacing.xs,
+    marginBottom: Spacing.md,
+  },
+  noticeTitle: { fontSize: FontSize.sm, fontWeight: FontWeight.bold, color: Colors.warning },
+  noticeText: { fontSize: FontSize.xs, lineHeight: 18, color: Colors.text.secondary },
   card: {
     backgroundColor: Colors.bg.card,
     borderRadius: Radius.xl,
@@ -239,19 +217,6 @@ const styles = StyleSheet.create({
   buttonDisabled: { opacity: 0.4 },
   buttonPressed: { opacity: 0.85 },
   buttonText: { color: '#fff', fontWeight: FontWeight.bold, fontSize: FontSize.md },
-  dividerRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm, marginTop: Spacing.md },
-  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth, backgroundColor: Colors.border.default },
-  dividerText: { fontSize: FontSize.xs, color: Colors.text.muted, fontWeight: FontWeight.medium },
-  socialRow: { flexDirection: 'row', gap: Spacing.sm },
-  socialBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: Spacing.sm, paddingVertical: 13,
-    backgroundColor: Colors.bg.elevated,
-    borderRadius: Radius.md, borderWidth: 1, borderColor: Colors.border.default,
-  },
-  socialBtnPressed: { opacity: 0.7 },
-  socialIcon: { fontSize: FontSize.md, fontWeight: FontWeight.bold, color: Colors.text.primary },
-  socialLabel: { fontSize: FontSize.sm, fontWeight: FontWeight.semibold, color: Colors.text.primary },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: Spacing.lg },
   footerText: { fontSize: FontSize.sm, color: Colors.text.muted },
   link: { fontSize: FontSize.sm, color: Colors.brand.light, fontWeight: FontWeight.semibold },

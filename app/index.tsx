@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/expo';
+import { useAuth } from '@/src/shared/auth';
 import { Link, Redirect } from 'expo-router';
 import { useRef, useState } from 'react';
 import {

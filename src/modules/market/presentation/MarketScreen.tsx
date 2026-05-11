@@ -1,4 +1,4 @@
-import { useUser } from '@clerk/expo';
+import { useUser } from '@/src/shared/auth';
 import { FlashList } from '@shopify/flash-list';
 import { useCallback } from 'react';
 import { ActivityIndicator, RefreshControl, StyleSheet, Text, View } from 'react-native';
