@@ -9,8 +9,8 @@ export async function getTopAssets(_limit = 10): Promise<CoinAsset[]> {
 
 export async function upsertAssets(_records: NewCoinAsset[]): Promise<void> {}
 
-export async function isCacheStale(_ttlMs: number): Promise<boolean> {
+export async function isCacheStale(_limit: number, _ttlMs: number): Promise<boolean> {
   return true;
 }
 
-export async function markSynced(): Promise<void> {}
+export async function markSynced(_limit: number): Promise<void> {}

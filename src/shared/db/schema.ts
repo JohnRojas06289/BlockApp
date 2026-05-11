@@ -17,16 +17,48 @@ export const coinAssets = sqliteTable(
     marketCapRank: integer('market_cap_rank'),
     priceChange24h: real('price_change_24h'),
     priceChangePercentage24h: real('price_change_percentage_24h'),
+    priceChangePercentage1h: real('price_change_percentage_1h'),
+    priceChangePercentage7d: real('price_change_percentage_7d'),
+    priceChangePercentage30d: real('price_change_percentage_30d'),
+    marketCapChangePercentage24h: real('market_cap_change_percentage_24h'),
     high24h: real('high_24h'),
     low24h: real('low_24h'),
     totalVolume: real('total_volume'),
     circulatingSupply: real('circulating_supply'),
+    totalSupply: real('total_supply'),
+    maxSupply: real('max_supply'),
+    fullyDilutedValuation: real('fully_diluted_valuation'),
+    ath: real('ath'),
+    athChangePercentage: real('ath_change_percentage'),
+    athDate: text('ath_date'),
+    sparkline7d: text('sparkline_7d'),
+    lastUpdated: text('last_updated'),
     cachedAt: integer('cached_at', { mode: 'timestamp' })
       .notNull()
       .default(sql`(unixepoch())`),
   },
   (t) => [
     index('coin_rank_idx').on(t.marketCapRank),
+  ],
+);
+
+export const assetHistoryPoints = sqliteTable(
+  'asset_history_points',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    assetId: text('asset_id').notNull().references(() => coinAssets.id, { onDelete: 'cascade' }),
+    range: text('range').notNull(),
+    metric: text('metric').notNull(),
+    timestamp: integer('timestamp').notNull(),
+    value: real('value').notNull(),
+    cachedAt: integer('cached_at', { mode: 'timestamp' })
+      .notNull()
+      .default(sql`(unixepoch())`),
+  },
+  (t) => [
+    index('history_asset_idx').on(t.assetId),
+    index('history_asset_range_metric_idx').on(t.assetId, t.range, t.metric),
+    index('history_asset_timestamp_idx').on(t.assetId, t.timestamp),
   ],
 );
 
@@ -104,3 +136,5 @@ export type NewWalletAddress = typeof walletAddresses.$inferInsert;
 export type WalletTransaction = typeof walletTransactions.$inferSelect;
 export type NewWalletTransaction = typeof walletTransactions.$inferInsert;
 export type SyncMetadata = typeof syncMetadata.$inferSelect;
+export type AssetHistoryPoint = typeof assetHistoryPoints.$inferSelect;
+export type NewAssetHistoryPoint = typeof assetHistoryPoints.$inferInsert;

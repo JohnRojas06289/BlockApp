@@ -12,7 +12,7 @@ class MarketRepository implements IMarketRepository {
       return local.getTopAssets(limit);
     }
 
-    const isStale = await local.isCacheStale(MARKET_CACHE_TTL_MS);
+    const isStale = await local.isCacheStale(limit, MARKET_CACHE_TTL_MS);
     if (!isStale) {
       return local.getTopAssets(limit);
     }
@@ -21,15 +21,25 @@ class MarketRepository implements IMarketRepository {
       const dtos = await fetchTopCoins(limit);
       const entities = dtos.map(toEntity);
       await local.upsertAssets(entities.map(toDbRecord));
-      await local.markSynced();
+      await local.markSynced(limit);
       return entities;
     } catch (error: unknown) {
+      const cached = await local.getTopAssets(limit);
+
+      if (cached.length > 0) {
+        return cached;
+      }
+
       // 401 = key inválida o expirada — lo propagamos para que la UI lo muestre
       if (isAxiosError(error) && error.response?.status === 401) {
         throw new Error('Invalid CoinGecko API key. Check your EXPO_PUBLIC_COINGECKO_API_KEY.');
       }
-      // Cualquier otro error (red, timeout): degradación elegante al cache
-      return local.getTopAssets(limit);
+
+      if (isAxiosError(error) && error.response?.status === 429) {
+        throw new Error('CoinGecko rate limit reached. Try again in a moment.');
+      }
+
+      throw new Error('Unable to load market data right now.');
     }
   }
 }

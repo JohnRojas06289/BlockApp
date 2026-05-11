@@ -7,6 +7,7 @@ export const BLOCKCHAIR_API_KEY = process.env.EXPO_PUBLIC_BLOCKCHAIR_API_KEY ?? 
 
 export const MARKET_CACHE_TTL_MS = 5 * 60 * 1000;   // 5 minutes
 export const WALLET_CACHE_TTL_MS = 10 * 60 * 1000;  // 10 minutes
+export const HISTORY_CACHE_TTL_MS = 60 * 60 * 1000; // 60 minutes
 
 export const TOP_COINS_LIMIT = 10;
 export const TRANSACTIONS_PER_PAGE = 25;
